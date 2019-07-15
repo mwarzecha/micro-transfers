@@ -6,7 +6,6 @@ import io.mwarzecha.util.Try;
 import java.math.BigDecimal;
 import java.time.Clock;
 import java.util.List;
-import java.util.NoSuchElementException;
 import java.util.Optional;
 import java.util.function.Supplier;
 import org.jdbi.v3.core.Handle;
@@ -29,7 +28,7 @@ class JdbiPersistenceService implements PersistenceService {
   }
 
   @Override
-  public List<Transfer> findAllAccountTransfers(long accountId) {
+  public List<Transfer> getTransfersByAccountId(long accountId) {
     return jdbi.withHandle(handle -> handle
         .select("SELECT * FROM transfer WHERE from_account = ? OR to_account = ?", accountId,
             accountId)
@@ -38,7 +37,7 @@ class JdbiPersistenceService implements PersistenceService {
   }
 
   @Override
-  public Optional<Transfer> findAccountTransferById(long accountId, long transferId) {
+  public Optional<Transfer> getTransferByIdAndAccountId(long transferId, long accountId) {
     return jdbi.withHandle(handle -> handle
         .select("SELECT * FROM transfer WHERE id = ? AND (from_account = ? OR to_account = ?)",
             transferId, accountId, accountId)
@@ -55,7 +54,7 @@ class JdbiPersistenceService implements PersistenceService {
   }
 
   @Override
-  public Optional<Account> findAccountById(long accountId) {
+  public Optional<Account> getAccountById(long accountId) {
     return jdbi.withHandle(handle -> handle
         .select("SELECT * FROM account WHERE id = ?", accountId)
         .map(ACCOUNT_ROW_MAPPER)
@@ -64,7 +63,7 @@ class JdbiPersistenceService implements PersistenceService {
 
   @Override
   public Account persistAccount(Account account) {
-    long id = jdbi.withHandle(handle -> handle
+    long accountId = jdbi.withHandle(handle -> handle
         .createUpdate("INSERT INTO account (owner, currency, balance) VALUES (?, ?, ?)")
         .bind(0, account.getOwner())
         .bind(1, account.getCurrency())
@@ -72,7 +71,7 @@ class JdbiPersistenceService implements PersistenceService {
         .executeAndReturnGeneratedKeys()
         .mapTo(Long.class)
         .one());
-    return account.withId(id);
+    return account.withId(accountId);
   }
 
   @Override
@@ -82,56 +81,52 @@ class JdbiPersistenceService implements PersistenceService {
 
   private Transfer doMakeTransfer(Transfer transfer) {
     return jdbi.inTransaction(TransactionIsolationLevel.READ_COMMITTED, handle -> {
-      validateCurrencies(handle, transfer);
       var amount = transfer.getAmount();
-      debitAccount(handle, transfer.getFromAccountId(), amount);
-      creditAccount(handle, transfer.getToAccountId(), amount);
+      var currency = transfer.getCurrency();
+      debitAccount(handle, transfer.getFromAccountId(), amount, currency);
+      creditAccount(handle, transfer.getToAccountId(), amount, currency);
       return persistTransfer(handle, transfer);
     });
   }
 
-  private static void validateCurrencies(Handle handle, Transfer transfer) {
-    var fromAccountCurrency = getAccountCurrencyById(handle, transfer.getFromAccountId());
-    var toAccountCurrency = getAccountCurrencyById(handle, transfer.getToAccountId());
-    var transferCurrency = transfer.getCurrency();
-    requireCurrencyEquals(transferCurrency, fromAccountCurrency);
-    requireCurrencyEquals(transferCurrency, toAccountCurrency);
-  }
-
-  private static String getAccountCurrencyById(Handle handle, long accountId) {
-    return handle.select("SELECT currency FROM account WHERE id = ?", accountId)
-        .mapTo(String.class)
-        .findFirst()
-        .orElseThrow(accountNotFound(accountId));
-  }
-
-  private static Supplier<NoSuchElementException> accountNotFound(long accountId) {
-    return () -> new NoSuchElementException(
-        String.format("Account with id %d not found", accountId));
-  }
-
-  private static void requireCurrencyEquals(String expectedCurrency, String actualCurrency) {
-    if (!expectedCurrency.equals(actualCurrency)) {
-      throw new IllegalArgumentException("Invalid currency");
-    }
-  }
-
-  private static void debitAccount(Handle handle, long accountId, BigDecimal amount) {
+  private static void debitAccount(Handle handle, long accountId, BigDecimal amount,
+      String currency) {
     try {
-      handle.execute("UPDATE account SET balance = balance - ? WHERE id = ?", amount,
-          accountId);
+      doDebitAccount(handle, accountId, amount, currency);
     } catch (UnableToExecuteStatementException ex) {
       throw new IllegalStateException("Insufficient funds");
     }
   }
 
-  private static void creditAccount(Handle handle, long accountId, BigDecimal amount) {
-    handle.execute("UPDATE account SET balance = balance + ? WHERE id = ?", amount, accountId);
+  private static void doDebitAccount(Handle handle, long accountId, BigDecimal amount,
+      String currency) {
+    int rowsUpdated = handle
+        .execute("UPDATE account SET balance = balance - ? WHERE id = ? AND currency = ?",
+            amount, accountId, currency);
+    assertOne(rowsUpdated, accountNotFoundMessageSupplier(accountId, currency));
+  }
+
+  private static void assertOne(int value, Supplier<String> messageSupplier) {
+    if (value != 1) {
+      throw new IllegalStateException(messageSupplier.get());
+    }
+  }
+
+  private static Supplier<String> accountNotFoundMessageSupplier(long accountId, String currency) {
+    return () -> String.format("Account with id %d and currency %s not found", accountId, currency);
+  }
+
+  private static void creditAccount(Handle handle, long accountId, BigDecimal amount,
+      String currency) {
+    int rowsUpdated = handle
+        .execute("UPDATE account SET balance = balance + ? WHERE id = ? AND currency = ?",
+            amount, accountId, currency);
+    assertOne(rowsUpdated, accountNotFoundMessageSupplier(accountId, currency));
   }
 
   private Transfer persistTransfer(Handle handle, Transfer transfer) {
     var timestamp = clock.instant();
-    long id = handle
+    long transferId = handle
         .createUpdate("INSERT INTO transfer (from_account, to_account, currency, amount, timestamp) VALUES (?, ?, ?, ?, ?)")
         .bind(0, transfer.getFromAccountId())
         .bind(1, transfer.getToAccountId())
@@ -141,6 +136,6 @@ class JdbiPersistenceService implements PersistenceService {
         .executeAndReturnGeneratedKeys()
         .mapTo(Long.class)
         .one();
-    return transfer.withIdAndTimestamp(id, timestamp);
+    return transfer.withIdAndTimestamp(transferId, timestamp);
   }
 }

@@ -195,13 +195,13 @@ class ServerRunnerIntegrationTest {
   @Test
   @Order(7)
   void testGetAccountTransfersEmpty() throws IOException, InterruptedException {
-    assertGetAllAccountTransfersSize(1L, 0);
-    assertGetAllAccountTransfersSize(2L, 0);
-    assertGetAllAccountTransfersSize(3L, 0);
-    assertGetAllAccountTransfersSize(4L, 0);
+    assertGetAccountTransfersSize(1L, 0);
+    assertGetAccountTransfersSize(2L, 0);
+    assertGetAccountTransfersSize(3L, 0);
+    assertGetAccountTransfersSize(4L, 0);
   }
 
-  private static void assertGetAllAccountTransfersSize(long accountId, int expectedSize)
+  private static void assertGetAccountTransfersSize(long accountId, int expectedSize)
       throws IOException, InterruptedException {
     var httpResponse = get("/accounts/" + accountId + "/transfers");
     List<Transfer> transfers = GSON.fromJson(httpResponse.body(), TRANSFER_LIST_TYPE);
@@ -213,15 +213,15 @@ class ServerRunnerIntegrationTest {
   @Test
   @Order(8)
   void testMakeTransfers() throws IOException, InterruptedException {
-    assertTransferMadeWithExpectedId(1L,
+    assertMakeTransferWithExpectedId(1L,
         newTransfer(1L, 2L, "USD", new BigDecimal("1.10")));
-    assertTransferMadeWithExpectedId(2L,
+    assertMakeTransferWithExpectedId(2L,
         newTransfer(2L, 1L, "USD", new BigDecimal("5.60")));
-    assertTransferMadeWithExpectedId(3L,
+    assertMakeTransferWithExpectedId(3L,
         newTransfer(3L, 4L, "EUR", new BigDecimal("10.29")));
   }
 
-  private static void assertTransferMadeWithExpectedId(long expectedId, Transfer transfer)
+  private static void assertMakeTransferWithExpectedId(long expectedId, Transfer transfer)
       throws IOException, InterruptedException {
     var httpResponse = post("/transfers", GSON.toJson(transfer));
     var resultTransfer = GSON.fromJson(httpResponse.body(), Transfer.class);
@@ -261,10 +261,10 @@ class ServerRunnerIntegrationTest {
   @Test
   @Order(10)
   void testGetAccountTransfers() throws IOException, InterruptedException {
-    assertGetAllAccountTransfersSize(1L, 2);
-    assertGetAllAccountTransfersSize(2L, 2);
-    assertGetAllAccountTransfersSize(3L, 1);
-    assertGetAllAccountTransfersSize(4L, 1);
+    assertGetAccountTransfersSize(1L, 2);
+    assertGetAccountTransfersSize(2L, 2);
+    assertGetAccountTransfersSize(3L, 1);
+    assertGetAccountTransfersSize(4L, 1);
   }
 
   @Test
@@ -293,6 +293,7 @@ class ServerRunnerIntegrationTest {
 
   private static void assertNotFound(String path) throws IOException, InterruptedException {
     var response = get(path);
+
     assertEquals(404, response.statusCode());
   }
 }

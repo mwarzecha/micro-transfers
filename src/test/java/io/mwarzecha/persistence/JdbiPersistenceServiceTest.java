@@ -95,11 +95,11 @@ class JdbiPersistenceServiceTest {
   }
 
   @Test
-  void testFindAccountById() {
+  void testGetAccountById() {
     jdbi.useHandle(handle -> insertIntoAccount(handle, 123L, "Mike", "USD",
         new BigDecimal("1.20")));
 
-    var account = persistenceService.findAccountById(123L)
+    var account = persistenceService.getAccountById(123L)
         .orElseThrow();
 
     assertEquals(123L, account.getId());
@@ -115,8 +115,8 @@ class JdbiPersistenceServiceTest {
   }
 
   @Test
-  void testFindNonExistentAccountById() {
-    Optional<Account> result = persistenceService.findAccountById(1L);
+  void testGetNonexistentAccountById() {
+    Optional<Account> result = persistenceService.getAccountById(1L);
 
     assertTrue(result.isEmpty());
   }
@@ -243,7 +243,7 @@ class JdbiPersistenceServiceTest {
   }
 
   @Test
-  void testMakeTransferToNonExistentAccount() {
+  void testMakeTransferToNonexistentAccount() {
     jdbi.useHandle(handle -> insertIntoAccount(handle, 1L, "Joe", "USD",
         new BigDecimal("100.21")));
 
@@ -262,7 +262,7 @@ class JdbiPersistenceServiceTest {
   }
 
   @Test
-  void testFindAllAccountTransfers() {
+  void testGetTransfersByAccountId() {
     jdbi.useTransaction(handle -> {
       insertIntoAccount(handle, 1L, "Joe", "USD", new BigDecimal("100.21"));
       insertIntoAccount(handle, 2L, "Steve", "USD", new BigDecimal("35.17"));
@@ -274,20 +274,20 @@ class JdbiPersistenceServiceTest {
       insertIntoTransfer(handle, 3L, 4L, 5L, "EUR", new BigDecimal("30.00"));
     });
 
-    List<Transfer> steveTransfers = persistenceService.findAllAccountTransfers(2L);
+    List<Transfer> steveTransfers = persistenceService.getTransfersByAccountId(2L);
 
     assertEquals(2, steveTransfers.size());
   }
 
   @Test
-  void testFindAccountTransferById() {
+  void testGetTransferByIdAndAccountId() {
     jdbi.useTransaction(handle -> {
       insertIntoAccount(handle, 1L, "Joe", "USD", new BigDecimal("100.21"));
       insertIntoAccount(handle, 2L, "Steve", "USD", new BigDecimal("35.17"));
       insertIntoTransfer(handle, 1L, 1L, 2L, "USD", new BigDecimal("5.00"));
     });
 
-    var joeTransfer = persistenceService.findAccountTransferById(1L, 1L)
+    var joeTransfer = persistenceService.getTransferByIdAndAccountId(1L, 1L)
         .orElseThrow();
 
     assertEquals(1L, joeTransfer.getId());
@@ -299,20 +299,20 @@ class JdbiPersistenceServiceTest {
   }
 
   @Test
-  void testFindNonExistentAccountTransferById() {
+  void testGetNonexistentTransferByIdAndAccountId() {
     jdbi.useTransaction(handle -> {
       insertIntoAccount(handle, 1L, "Joe", "USD", new BigDecimal("100.21"));
       insertIntoAccount(handle, 2L, "Steve", "USD", new BigDecimal("35.17"));
     });
 
     Optional<Transfer> joeTransfer = persistenceService
-        .findAccountTransferById(1L, 1L);
+        .getTransferByIdAndAccountId(1L, 1L);
 
     assertTrue(joeTransfer.isEmpty());
   }
 
   @Test
-  void testFindAccountTransferByIdForWrongAccount() {
+  void testGetTransferByIdAndWrongAccountId() {
     jdbi.useTransaction(handle -> {
       insertIntoAccount(handle, 1L, "Joe", "USD", new BigDecimal("100.21"));
       insertIntoAccount(handle, 2L, "Steve", "USD", new BigDecimal("35.17"));
@@ -322,7 +322,7 @@ class JdbiPersistenceServiceTest {
     });
 
     Optional<Transfer> joeTransfer = persistenceService
-        .findAccountTransferById(1L, 1L);
+        .getTransferByIdAndAccountId(1L, 1L);
 
     assertTrue(joeTransfer.isEmpty());
   }

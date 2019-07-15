@@ -8,13 +8,13 @@ import java.util.Optional;
 
 public interface PersistenceService {
 
-  List<Transfer> findAllAccountTransfers(long accountId);
+  List<Transfer> getTransfersByAccountId(long accountId);
 
-  Optional<Transfer> findAccountTransferById(long accountId, long transferId);
+  Optional<Transfer> getTransferByIdAndAccountId(long transferId, long accountId);
 
   List<Account> getAllAccounts();
 
-  Optional<Account> findAccountById(long accountId);
+  Optional<Account> getAccountById(long accountId);
 
   Account persistAccount(Account account);
 

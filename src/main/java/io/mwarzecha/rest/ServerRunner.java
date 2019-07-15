@@ -57,10 +57,10 @@ public class ServerRunner {
           path("accounts", () -> {
             get(accountController::getAllAccounts);
             post(accountController::createAccount);
-            path(":id", () -> {
+            path(":accountId", () -> {
               get(accountController::getAccountById);
               path("transfers", () -> {
-                get(transferController::getAllAccountTransfers);
+                get(transferController::getAccountTransfers);
                 path(":transferId", () -> get(transferController::getAccountTransferById));
               });
             });

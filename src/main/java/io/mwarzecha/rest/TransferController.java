@@ -13,17 +13,17 @@ class TransferController {
     this.persistenceService = persistenceService;
   }
 
-  void getAllAccountTransfers(Context ctx) {
-    var transfers = persistenceService.findAllAccountTransfers(
-        ctx.pathParam("id", Long.class).get());
+  void getAccountTransfers(Context ctx) {
+    var transfers = persistenceService.getTransfersByAccountId(
+        ctx.pathParam("accountId", Long.class).get());
     ctx.json(transfers);
   }
 
   void getAccountTransferById(Context ctx) {
     persistenceService
-        .findAccountTransferById(
-            ctx.pathParam("id", Long.class).get(),
-            ctx.pathParam("transferId", Long.class).get())
+        .getTransferByIdAndAccountId(
+            ctx.pathParam("transferId", Long.class).get(),
+            ctx.pathParam("accountId", Long.class).get())
         .ifPresentOrElse(ctx::json, () -> ctx.status(404).result("Transfer not found"));
   }
 
