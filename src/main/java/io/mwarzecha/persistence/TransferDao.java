@@ -37,7 +37,7 @@ class TransferDao {
         .findFirst();
   }
 
-  Transfer persistTransfer(Transfer transfer, Instant timestamp) {
+  Transfer persistTransferWithTimestamp(Transfer transfer, Instant timestamp) {
     long transferId = handle
         .createUpdate("INSERT INTO transfer (from_account, to_account, currency, amount, timestamp) VALUES (?, ?, ?, ?, ?)")
         .bind(0, transfer.getFromAccountId())

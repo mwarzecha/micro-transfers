@@ -62,7 +62,7 @@ class JdbiPersistenceService implements PersistenceService {
           .debitAccount(transfer.getFromAccountId(), amount, currency)
           .creditAccount(transfer.getToAccountId(), amount, currency);
       return TransferDao.withHandle(handle)
-          .persistTransfer(transfer, clock.instant());
+          .persistTransferWithTimestamp(transfer, clock.instant());
     });
   }
 }
