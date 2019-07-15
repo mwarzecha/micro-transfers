@@ -88,6 +88,8 @@ class ServerRunnerIntegrationTest {
         "{\"currency\":\"USD\",\"balance\":\"0.00\"}");
     assertPostBadRequest("/accounts",
         "{\"owner\":\"Joe\",\"balance\":\"0.00\"}");
+    assertPostBadRequest("/accounts",
+        "{\"currency\":\"USD\",\"owner\":\"Joe\",\"balance\":\"-1.00\"}");
     assertGetAllAccountsSize(0);
   }
 
