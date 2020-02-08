@@ -24,7 +24,8 @@ class TransferController {
         .getTransferByIdAndAccountId(
             ctx.pathParam("transferId", Long.class).get(),
             ctx.pathParam("accountId", Long.class).get())
-        .ifPresentOrElse(ctx::json, () -> ctx.status(404).result("Transfer not found"));
+        .ifPresentOrElse(ctx::json,
+            () -> ctx.status(404).result("Transfer not found"));
   }
 
   void makeTransfer(Context ctx) {

@@ -21,7 +21,8 @@ class AccountController {
     persistenceService
         .getAccountById(
             ctx.pathParam("accountId", Long.class).get())
-        .ifPresentOrElse(ctx::json, () -> ctx.status(404).result("Account not found"));
+        .ifPresentOrElse(ctx::json,
+            () -> ctx.status(404).result("Account not found"));
   }
 
   void createAccount(Context ctx) {

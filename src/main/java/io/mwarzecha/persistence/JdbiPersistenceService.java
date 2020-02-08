@@ -6,6 +6,7 @@ import io.mwarzecha.util.Try;
 import java.time.Clock;
 import java.util.List;
 import java.util.Optional;
+import org.jdbi.v3.core.Handle;
 import org.jdbi.v3.core.Jdbi;
 import org.jdbi.v3.core.transaction.TransactionIsolationLevel;
 
@@ -56,13 +57,25 @@ class JdbiPersistenceService implements PersistenceService {
 
   private Transfer doMakeTransfer(Transfer transfer) {
     return jdbi.inTransaction(TransactionIsolationLevel.READ_COMMITTED, handle -> {
-      var amount = transfer.getAmount();
-      var currency = transfer.getCurrency();
-      AccountDao.withHandle(handle)
-          .debitAccount(transfer.getFromAccountId(), amount, currency)
-          .creditAccount(transfer.getToAccountId(), amount, currency);
+      updateBalances(handle, transfer);
       return TransferDao.withHandle(handle)
           .persistTransferWithTimestamp(transfer, clock.instant());
     });
+  }
+
+  private void updateBalances(Handle handle, Transfer transfer) {
+    var amount = transfer.getAmount();
+    var currency = transfer.getCurrency();
+    var from = transfer.getFromAccountId();
+    var to = transfer.getToAccountId();
+    if (to > from) {
+      AccountDao.withHandle(handle)
+          .debitAccount(from, amount, currency)
+          .creditAccount(to, amount, currency);
+    } else {
+      AccountDao.withHandle(handle)
+          .creditAccount(to, amount, currency)
+          .debitAccount(from, amount, currency);
+    }
   }
 }

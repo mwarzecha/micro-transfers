@@ -51,7 +51,7 @@ class AccountDao {
 
   AccountDao debitAccount(long accountId, BigDecimal amount, String currency) {
     int rowsUpdated = executeDebitUpdate(accountId, amount, currency);
-    assertOne(rowsUpdated, accountNotFoundMessageSupplier(accountId, currency));
+    assertOne(rowsUpdated, () -> invalidAccountIdOrCurrencyMessage(accountId, currency));
     return this;
   }
 
@@ -71,14 +71,15 @@ class AccountDao {
     }
   }
 
-  private static Supplier<String> accountNotFoundMessageSupplier(long accountId, String currency) {
-    return () -> String.format("Account with id %d and currency %s not found", accountId, currency);
+  private static String invalidAccountIdOrCurrencyMessage(long accountId, String currency) {
+    return String.format("Invalid account id %d or currency %s", accountId, currency);
   }
 
-  void creditAccount(long accountId, BigDecimal amount, String currency) {
+  AccountDao creditAccount(long accountId, BigDecimal amount, String currency) {
     int rowsUpdated = handle
         .execute("UPDATE account SET balance = balance + ? WHERE id = ? AND currency = ?",
             amount, accountId, currency);
-    assertOne(rowsUpdated, accountNotFoundMessageSupplier(accountId, currency));
+    assertOne(rowsUpdated, () -> invalidAccountIdOrCurrencyMessage(accountId, currency));
+    return this;
   }
 }
